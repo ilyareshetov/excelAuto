@@ -26,90 +26,71 @@ namespace ExcelWorker
             InitializeComponent();
             sourceFile = Application.StartupPath + "\\Shablon_Plana\\" + "Шаблон_плана.xls";
         }
-        Dictionary<int, String> Selected= new Dictionary<int, string>();
+        Dictionary<int, String> Selected1= new Dictionary<int, string>();
+        Dictionary<int, String> Selected2 = new Dictionary<int, string>();
         Dictionary<int, String> ttt;
         string temp;
-        string excelPath;
-        // // Путь к папке с исходными документами
+        string excelPath1;
+        string excelPath2;
+        // Путь к папке с исходными документами
         string documentPath = Application.StartupPath + "\\Data\\";
         // Путь к папке выходного документа
         string targetPath = Application.StartupPath + "\\Plan\\";
         // Путь к шаблону индивидуального плана
         string sourceFile = "";
 
+        int i1 = 0, i2 = 0, i3 = 0, i4 = 0;
+
+        // Массивы содержат колонки из основного документа где искать цифры
+        int[] index_free = new int[20] { 3, 4, 26, 27, 28, 29, 31, 32, 33, 34, 35, 0, 0, 0, 38, 37, 0, 0, 0, 0 };
+        int[] index_pay = new int[20] { 3, 5, 40, 41, 42, 43, 45, 46, 47, 48, 49, 0, 0, 0, 52, 51, 0, 0, 0, 0 };
+
+        IWorkbook workbook_slave = null;
+        ISheet sheet1_slave = null;
+        ISheet sheet2_slave = null;
+
+        IWorkbook workbook_master = null;
+        ISheet sheet1_master = null;
 
 
         private void button1_Click(object sender, EventArgs e)
         {
-            openFileDialog1.InitialDirectory = documentPath;
-            if (openFileDialog1.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            using (var FirstForm = new Form2(Selected1))
             {
-                excelPath = openFileDialog1.FileName;
-                IWorkbook workbook;
-                //string excelPath = @"C:\Users\xancolo\Desktop\Kursach\ExcelWorker\Data\master.xls";
-                try
+                var result = FirstForm.ShowDialog();
+                if (result == DialogResult.OK || result == DialogResult.Cancel)
                 {
-                    using (FileStream file = new FileStream(excelPath, FileMode.Open, FileAccess.Read))
-                    {
-                        workbook = new HSSFWorkbook(file);
-                    }
-                    ISheet sheet1 = workbook.GetSheet("КТ");
-                    ttt = new Dictionary<int, string>();
-                    int i = 9;
-                    while (1 == 1)
-                    {
-                        if (sheet1.GetRow(i) == null)
-                        {
-                            i++;
-                        }
-                        if (string.IsNullOrEmpty(sheet1.GetRow(i).GetCell(0).StringCellValue) && (string.IsNullOrEmpty(sheet1.GetRow(i + 1).GetCell(0).StringCellValue)))
-                            break;
-                        ttt.Add(i, (sheet1.GetRow(i).GetCell(0).StringCellValue));
-                        i++;
-                    }
-
-                    listBox1.DataSource = ttt.Values.ToList<string>();
-                    listBox1.Refresh();
-                    tabControl1.SelectedTab = tabControl1.TabPages["TabPage2"];
+                    Dictionary<int, String> val = FirstForm.index;
+                    this.Selected1 = val;
+                    this.excelPath1 = FirstForm.excelPath;
                 }
-                catch (Exception)
-                {
-                    MessageBox.Show("Выберите соответствующий тип файла!");
-                }
-                
+            } 
+            
+            foreach (int t1 in Selected1.Keys)
+            {
+                listBox1.Items.Add(Selected1[t1]);
             }
+            listBox1.Refresh();         
         }
 
-        private void button2_Click(object sender, EventArgs e)
+        private void button5_Click(object sender, EventArgs e)
         {
-            if (!(listBox1.SelectedItem == null))
+            using (var SecondForm = new Form3(Selected2))
             {
-                int t = ttt.First(f => f.Value.ToString() == listBox1.SelectedItem).Key;
-                if (!Selected.ContainsKey(t))
+                var result = SecondForm.ShowDialog();
+                if (result == DialogResult.OK || result == DialogResult.Cancel)
                 {
-                    listBox2.Items.Add(listBox1.SelectedItem);
-                    Selected.Add(t, ttt[t]);
-                    //MessageBox.Show(Selected[t] +" "+ t.ToString());
-                    listBox2.Refresh();
+                    Dictionary<int, String> val = SecondForm.index;
+                    this.Selected2 = val;
+                    this.excelPath2 = SecondForm.excelPath;
                 }
-                else
-                    MessageBox.Show("Выбран тот же предмет!");
             }
-            else
-                MessageBox.Show("Не выбран элемент для переноса!");
-        }
 
-        private void button3_Click(object sender, EventArgs e)
-        {
-            if (!(listBox2.SelectedItem == null))
+            foreach (int t1 in Selected2.Keys)
             {
-                int t = Selected.First(f => f.Value.ToString() == listBox2.SelectedItem).Key;
-                Selected.Remove(t);
-                listBox2.Items.RemoveAt(listBox2.SelectedIndex);
-                listBox2.Refresh();
+                listBox1.Items.Add(Selected2[t1]);
             }
-            else
-                MessageBox.Show("Не выбран элемент для удаления!");
+            listBox1.Refresh();
         }
 
         private void button4_Click(object sender, EventArgs e)
@@ -126,8 +107,7 @@ namespace ExcelWorker
                 }
                 else
                 {
-                    //Создание нового документа на основе шаблона
-                    
+                    //Создание нового документа на основе шаблона                   
                     string destName = "Индивидуальный план работы преподавателя.xls";
                     if (!string.IsNullOrEmpty(textBox_name.Text))
                         destName = textBox_name.Text + ".xls";
@@ -135,59 +115,25 @@ namespace ExcelWorker
 
                     System.IO.File.Copy(sourceFile, destFile, true);
 
-                    //Открытие расчета учебной нагрузки
-                    IWorkbook workbook_master;
-                    //string excelPath = @"C:\Users\xancolo\Desktop\Kursach\ExcelWorker\Data\master.xls";
-                    using (FileStream file_master = new FileStream(excelPath, FileMode.Open, FileAccess.Read))
-                    {
-                        workbook_master = new HSSFWorkbook(file_master);
-                    }
-                    ISheet sheet1_master = workbook_master.GetSheet("КТ");
-
                     //Открытие созданного пустого документа
-                    IWorkbook workbook_slave;
                     using (FileStream file_slave = new FileStream(destFile, FileMode.Open, FileAccess.ReadWrite))
                     {
                         workbook_slave = new HSSFWorkbook(file_slave);
                     }
-                    ISheet sheet1_slave = workbook_slave.GetSheet("I1");
-                    ISheet sheet2_slave = workbook_slave.GetSheet("I1_1");
+                    sheet1_slave = workbook_slave.GetSheet("I1");
+                    sheet2_slave = workbook_slave.GetSheet("I1_1");
+                  
 
-                    int i1 = 0, i2 = 0, i3 = 0, i4 = 0;
-                    // Массивы содержат колонки из основного документа где искать цифры
-                    int[] index_free, index_pay;
-                    index_free = new int[20] { 3, 4, 26, 27, 28, 29, 31, 32, 33, 34, 35, 0, 0, 0, 38, 37, 0, 0, 0, 0};
-                    index_pay = new int[20] { 3, 5, 40, 41, 42, 43, 45, 46, 47, 48, 49, 0, 0, 0, 52, 51, 0, 0, 0, 0};
-
-                    foreach (int t1 in Selected.Keys)
+                    if (excelPath1 != null)
                     {
-                        //Распределяем выбранные предметы по семестрам и форме обучения
-                        //Если бюджет и 1 семестр
-                        if ((Convert.ToInt32(sheet1_master.GetRow(t1).GetCell(12).NumericCellValue) % 2 == 1) && (sheet1_master.GetRow(t1).GetCell(39).NumericCellValue != 0))
-                        {
-                            AddRow(t1, sheet1_slave, 5 + i1, sheet1_master, index_free, workbook_slave);
-                            i1++;
-                        }
-                        //Если контракт и 1 семестр
-                        if ((Convert.ToInt32(sheet1_master.GetRow(t1).GetCell(12).NumericCellValue) % 2 == 1) && (sheet1_master.GetRow(t1).GetCell(43).NumericCellValue != 0) || (sheet1_master.GetRow(t1).GetCell(50).NumericCellValue != 0) || (sheet1_master.GetRow(t1).GetCell(51).NumericCellValue != 0))
-                        {
-                            AddRow(t1, sheet1_slave, 15 + i2, sheet1_master, index_pay, workbook_slave);
-                            i2++;
-                        }
-                        //Если бюджет и 2 семестр
-                        if ((Convert.ToInt32(sheet1_master.GetRow(t1).GetCell(12).NumericCellValue) % 2 == 0) && (sheet1_master.GetRow(t1).GetCell(39).NumericCellValue != 0))
-                        {
-                            AddRow(t1, sheet2_slave, 5 + i3, sheet1_master, index_free, workbook_slave);
-                            i3++;
-                        }
-                        //Если контракт и 2 семестр
-                        if ((Convert.ToInt32(sheet1_master.GetRow(t1).GetCell(12).NumericCellValue) % 2 == 0) && (sheet1_master.GetRow(t1).GetCell(43).NumericCellValue != 0) || (sheet1_master.GetRow(t1).GetCell(50).NumericCellValue != 0) || (sheet1_master.GetRow(t1).GetCell(51).NumericCellValue != 0))
-                        {
-                            AddRow(t1, sheet2_slave, 15 + i4, sheet1_master, index_pay, workbook_slave);
-                            i4++;
-                        }
-
+                        SetRows(Selected1, excelPath1);
                     }
+
+                    if (excelPath2 != null)
+                    {
+                        SetRows(Selected2, excelPath2);
+                    }
+
 
                     //Добавление курсовых работ и ВКР
                     //Бюджет Курсовые и ВКР
@@ -269,12 +215,53 @@ namespace ExcelWorker
             }
         }
 
-        public void AddRow(int key, ISheet sheet, int row_number, ISheet master, int[] index, IWorkbook wb)
+        public void SetRows(Dictionary<int, String> Selected, string excelPath)
+        {
+            //Открытие расчета учебной нагрузки
+            using (FileStream file_master = new FileStream(excelPath, FileMode.Open, FileAccess.Read))
+            {
+                workbook_master = new HSSFWorkbook(file_master);
+            }
+            sheet1_master = workbook_master.GetSheet("КТ");
+
+            foreach (int t1 in Selected.Keys)
+            {
+                //Распределяем выбранные предметы по семестрам и форме обучения
+                //Если бюджет и 1 семестр
+                if ((Convert.ToInt32(sheet1_master.GetRow(t1).GetCell(12).NumericCellValue) % 2 == 1) && (sheet1_master.GetRow(t1).GetCell(39).NumericCellValue != 0))
+                {
+                    AddRow(t1, sheet1_slave, 5 + i1, sheet1_master, index_free, workbook_slave, Selected);
+                    i1++;
+                }
+                //Если контракт и 1 семестр
+                if ((Convert.ToInt32(sheet1_master.GetRow(t1).GetCell(12).NumericCellValue) % 2 == 1) && (sheet1_master.GetRow(t1).GetCell(43).NumericCellValue != 0) || (sheet1_master.GetRow(t1).GetCell(50).NumericCellValue != 0) || (sheet1_master.GetRow(t1).GetCell(51).NumericCellValue != 0))
+                {
+                    AddRow(t1, sheet1_slave, 15 + i2, sheet1_master, index_pay, workbook_slave, Selected);
+                    i2++;
+                }
+                //Если бюджет и 2 семестр
+                if ((Convert.ToInt32(sheet1_master.GetRow(t1).GetCell(12).NumericCellValue) % 2 == 0) && (sheet1_master.GetRow(t1).GetCell(39).NumericCellValue != 0))
+                {
+                    AddRow(t1, sheet2_slave, 5 + i3, sheet1_master, index_free, workbook_slave, Selected);
+                    i3++;
+                }
+                //Если контракт и 2 семестр
+                if ((Convert.ToInt32(sheet1_master.GetRow(t1).GetCell(12).NumericCellValue) % 2 == 0) && (sheet1_master.GetRow(t1).GetCell(43).NumericCellValue != 0) || (sheet1_master.GetRow(t1).GetCell(50).NumericCellValue != 0) || (sheet1_master.GetRow(t1).GetCell(51).NumericCellValue != 0))
+                {
+                    AddRow(t1, sheet2_slave, 15 + i4, sheet1_master, index_pay, workbook_slave, Selected);
+                    i4++;
+                }
+
+            }
+        }
+
+        public void AddRow(int key, ISheet sheet, int row_number, ISheet master, int[] index, IWorkbook wb, Dictionary<int, String> Selected) 
         {
             //Добавление строки с предметом (здесь заполняются все ячейки одной строки)
             IRow row = sheet.GetRow(row_number);
             ICell cell = row.CreateCell(0);     //Название предмета
-            cell.SetCellValue(Selected[key]);
+            string name = master.GetRow(key).GetCell(0).StringCellValue;
+            cell.SetCellValue(Selected[key].Remove(Selected[key].Length-10,10));
             cell.CellStyle = Style(wb, 11);     //Стиль текста
             Border(cell, 1);   //Создание границ ячейки
 
@@ -447,7 +434,7 @@ namespace ExcelWorker
                 cell.CellStyle = Style(wb, 10);
                 sheet.SetColumnWidth(5, 1100);
                 sheet.SetColumnWidth(7, 1300);
-                if (i == 9)
+                if (i == 10)
                     Border(cell, 4);
                 else Border(cell, 2);
             }           
@@ -497,6 +484,6 @@ namespace ExcelWorker
             Border(cell, 1);
 
             SetFormulaColumn(sheet, lastPos, wb);
-        }
+        }       
     }
 }
