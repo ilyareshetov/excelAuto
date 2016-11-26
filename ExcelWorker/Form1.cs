@@ -97,115 +97,122 @@ namespace ExcelWorker
         {
             try
             {
-                string pattern = @"[*|\:""<>?/]";
-                string text = textBox_name.Text;
-                Regex newReg = new Regex(pattern);
-                MatchCollection matches = newReg.Matches(text);
-                if (matches.Count > 0)
+                if (excelPath1 != null || excelPath2 != null)
                 {
-                    MessageBox.Show("Недопустимый символ в имени!");
+                    string pattern = @"[*|\:""<>?/]";
+                    string text = textBox_name.Text;
+                    Regex newReg = new Regex(pattern);
+                    MatchCollection matches = newReg.Matches(text);
+                    if (matches.Count > 0)
+                    {
+                        MessageBox.Show("Недопустимый символ в имени!");
+                    }
+                    else
+                    {
+                        //Создание нового документа на основе шаблона                   
+                        string destName = "Индивидуальный план работы преподавателя.xls";
+                        if (!string.IsNullOrEmpty(textBox_name.Text))
+                            destName = textBox_name.Text + ".xls";
+                        string destFile = System.IO.Path.Combine(targetPath, destName);
+
+                        System.IO.File.Copy(sourceFile, destFile, true);
+
+                        //Открытие созданного пустого документа
+                        using (FileStream file_slave = new FileStream(destFile, FileMode.Open, FileAccess.ReadWrite))
+                        {
+                            workbook_slave = new HSSFWorkbook(file_slave);
+                        }
+                        sheet1_slave = workbook_slave.GetSheet("I1");
+                        sheet2_slave = workbook_slave.GetSheet("I1_1");
+
+
+                        if (excelPath1 != null)
+                        {
+                            SetRows(Selected1, excelPath1);
+                        }
+
+                        if (excelPath2 != null)
+                        {
+                            SetRows(Selected2, excelPath2);
+                        }
+
+
+                        //Добавление курсовых работ и ВКР
+                        //Бюджет Курсовые и ВКР
+                        int i_free = 5 + i3;
+                        if (numericUpDown1.Value != 0)
+                        {
+                            AddCourse(numericUpDown1.Value, i_free, 0, workbook_slave, sheet2_slave, 2);
+                            i_free++;
+                        }
+                        if (numericUpDown2.Value != 0)
+                            AddCourse(numericUpDown2.Value, 5 + i1, 0, workbook_slave, sheet1_slave, 3);
+                        if (numericUpDown3.Value != 0)
+                        {
+                            AddCourse(numericUpDown3.Value, i_free, 0, workbook_slave, sheet2_slave, 3);
+                            i_free++;
+                        }
+                        if (numericUpDown4.Value != 0)
+                        {
+                            AddCourse(numericUpDown4.Value, i_free, 1, workbook_slave, sheet2_slave, 4);
+                            i_free++;
+                        }
+
+                        //Контракт Курсовые и ВКР
+                        int i_pay = 15 + i4;
+                        if (numericUpDown5.Value != 0)
+                        {
+                            AddCourse(numericUpDown5.Value, i_pay, 0, workbook_slave, sheet2_slave, 2);
+                            i_pay++;
+                        }
+                        if (numericUpDown6.Value != 0)
+                            AddCourse(numericUpDown6.Value, 15 + i2, 0, workbook_slave, sheet1_slave, 3);
+                        if (numericUpDown7.Value != 0)
+                        {
+                            AddCourse(numericUpDown7.Value, i_pay, 0, workbook_slave, sheet2_slave, 3);
+                            i_pay++;
+                        }
+                        if (numericUpDown8.Value != 0)
+                        {
+                            AddCourse(numericUpDown8.Value, i_pay, 1, workbook_slave, sheet2_slave, 4);
+                            i_pay++;
+                        }
+
+
+                        //Добавление строк с формулами
+                        //1 семестр
+                        FormulaRow(workbook_slave, sheet1_slave, 6, 13, true);  //дневная бюджет
+                        FormulaRow(workbook_slave, sheet1_slave, 16, 23, true); //дневная контракт
+                        FormulaRow(workbook_slave, sheet1_slave, 14, 24, false);//итого по дневной форме
+                        FormulaRow(workbook_slave, sheet1_slave, 27, 34, true); //итого по заочной форме
+                        FormulaRow(workbook_slave, sheet1_slave, 24, 35, false);//итого за 1 семестр (контракт)
+                        FormulaRow(workbook_slave, sheet1_slave, 14, 36, false);//итого за 1 семестр
+
+                        //2 семестр
+                        FormulaRow(workbook_slave, sheet2_slave, 6, 13, true);  //дневная бюджет
+                        FormulaRow(workbook_slave, sheet2_slave, 16, 23, true); //дневная контракт
+                        FormulaRow(workbook_slave, sheet2_slave, 14, 24, false);//итого по дневной форме
+                        FormulaRow(workbook_slave, sheet2_slave, 27, 34, true); //итого по заочной форме
+                        FormulaRow(workbook_slave, sheet2_slave, 24, 35, false);//итого за 2 семестр (контракт)
+                        FormulaRow(workbook_slave, sheet2_slave, 14, 36, false);//итого за 2 семестр
+                        FormulaRow(workbook_slave, sheet2_slave, 14, 37, false, false);//часов по плану за год (бюджет)
+                        FormulaRow(workbook_slave, sheet2_slave, 36, 38, false, false);//часов по плану за год (контракт)
+                        FormulaRow(workbook_slave, sheet2_slave, 38, 39, false);    //всего по плану за год
+
+                        //Сохранение изменений в документе
+                        using (FileStream file_slave = new FileStream(destFile, FileMode.Open, FileAccess.ReadWrite))
+                        {
+                            workbook_slave.Write(file_slave);
+                            file_slave.Close();
+                        }
+
+                        //Сообщение об успешном создании документа
+                        label5.Visible = true;
+                    }
                 }
                 else
                 {
-                    //Создание нового документа на основе шаблона                   
-                    string destName = "Индивидуальный план работы преподавателя.xls";
-                    if (!string.IsNullOrEmpty(textBox_name.Text))
-                        destName = textBox_name.Text + ".xls";
-                    string destFile = System.IO.Path.Combine(targetPath, destName);
-
-                    System.IO.File.Copy(sourceFile, destFile, true);
-
-                    //Открытие созданного пустого документа
-                    using (FileStream file_slave = new FileStream(destFile, FileMode.Open, FileAccess.ReadWrite))
-                    {
-                        workbook_slave = new HSSFWorkbook(file_slave);
-                    }
-                    sheet1_slave = workbook_slave.GetSheet("I1");
-                    sheet2_slave = workbook_slave.GetSheet("I1_1");
-                  
-
-                    if (excelPath1 != null)
-                    {
-                        SetRows(Selected1, excelPath1);
-                    }
-
-                    if (excelPath2 != null)
-                    {
-                        SetRows(Selected2, excelPath2);
-                    }
-
-
-                    //Добавление курсовых работ и ВКР
-                    //Бюджет Курсовые и ВКР
-                    int i_free = 5 + i3;
-                    if (numericUpDown1.Value != 0)
-                    {
-                        AddCourse(numericUpDown1.Value, i_free, 0, workbook_slave, sheet2_slave, 2);
-                        i_free++;
-                    }                 
-                    if (numericUpDown2.Value != 0)
-                        AddCourse(numericUpDown2.Value, 5+i1, 0, workbook_slave, sheet1_slave, 3);
-                    if (numericUpDown3.Value != 0)
-                    {
-                        AddCourse(numericUpDown3.Value, i_free, 0, workbook_slave, sheet2_slave, 3);
-                        i_free++;
-                    }                      
-                    if (numericUpDown4.Value != 0)
-                    {
-                        AddCourse(numericUpDown4.Value, i_free, 1, workbook_slave, sheet2_slave, 4);
-                        i_free++;
-                    }
-
-                    //Контракт Курсовые и ВКР
-                    int i_pay = 15 + i4;
-                    if (numericUpDown5.Value != 0)
-                    {
-                        AddCourse(numericUpDown5.Value, i_pay, 0, workbook_slave, sheet2_slave, 2);
-                        i_pay++;
-                    }
-                    if (numericUpDown6.Value != 0)
-                        AddCourse(numericUpDown6.Value, 15 + i2, 0, workbook_slave, sheet1_slave, 3);
-                    if (numericUpDown7.Value != 0)
-                    {
-                        AddCourse(numericUpDown7.Value, i_pay, 0, workbook_slave, sheet2_slave, 3);
-                        i_pay++;
-                    }
-                    if (numericUpDown8.Value != 0)
-                    {
-                        AddCourse(numericUpDown8.Value, i_pay, 1, workbook_slave, sheet2_slave, 4);
-                        i_pay++;
-                    }
-
-
-                    //Добавление строк с формулами
-                    //1 семестр
-                    FormulaRow(workbook_slave, sheet1_slave, 6, 13, true);  //дневная бюджет
-                    FormulaRow(workbook_slave, sheet1_slave, 16, 23, true); //дневная контракт
-                    FormulaRow(workbook_slave, sheet1_slave, 14, 24, false);//итого по дневной форме
-                    FormulaRow(workbook_slave, sheet1_slave, 27, 34, true); //итого по заочной форме
-                    FormulaRow(workbook_slave, sheet1_slave, 24, 35, false);//итого за 1 семестр (контракт)
-                    FormulaRow(workbook_slave, sheet1_slave, 14, 36, false);//итого за 1 семестр
-
-                    //2 семестр
-                    FormulaRow(workbook_slave, sheet2_slave, 6, 13, true);  //дневная бюджет
-                    FormulaRow(workbook_slave, sheet2_slave, 16, 23, true); //дневная контракт
-                    FormulaRow(workbook_slave, sheet2_slave, 14, 24, false);//итого по дневной форме
-                    FormulaRow(workbook_slave, sheet2_slave, 27, 34, true); //итого по заочной форме
-                    FormulaRow(workbook_slave, sheet2_slave, 24, 35, false);//итого за 2 семестр (контракт)
-                    FormulaRow(workbook_slave, sheet2_slave, 14, 36, false);//итого за 2 семестр
-                    FormulaRow(workbook_slave, sheet2_slave, 14, 37, false, false);//часов по плану за год (бюджет)
-                    FormulaRow(workbook_slave, sheet2_slave, 36, 38, false, false);//часов по плану за год (контракт)
-                    FormulaRow(workbook_slave, sheet2_slave, 38, 39, false);    //всего по плану за год
-
-                    //Сохранение изменений в документе
-                    using (FileStream file_slave = new FileStream(destFile, FileMode.Open, FileAccess.ReadWrite))
-                    {
-                        workbook_slave.Write(file_slave);
-                        file_slave.Close();
-                    }
-
-                    //Сообщение об успешном создании документа
-                    label5.Visible = true;
+                    MessageBox.Show("Не выбраны документы!");
                 }
                 
             }
